@@ -1,7 +1,6 @@
 #!/bin/bash
 # ComfyUI Installation Script for RunPod.io with 5090 Support
 # This script installs ComfyUI with essential custom nodes using uv virtual environment
-
 echo "========================================"
 echo "🚀 Starting ComfyUI setup for RunPod.io..."
 echo "========================================"
@@ -12,7 +11,30 @@ echo "📦 Installing uv package manager..."
 echo "----------------------------------------"
 if ! command -v uv &> /dev/null; then
     curl -LsSf https://astral.sh/uv/install.sh | sh
-    source $HOME/.cargo/env
+    
+    # Wait for cargo environment file to exist (max 15 seconds)
+    for i in {1..15}; do
+        if [ -f "$HOME/.cargo/env" ]; then
+            source $HOME/.cargo/env
+            echo "✅ Cargo environment loaded successfully"
+            break
+        fi
+        echo "Waiting for Cargo environment... ($i/15)"
+        sleep 1
+    done
+    
+    # Fallback if env file not found
+    if ! command -v uv &> /dev/null; then
+        echo "Warning: Cargo env file not found. Setting PATH manually."
+        export PATH="$HOME/.cargo/bin:$PATH"
+    fi
+    
+    # Verify uv installation
+    if ! command -v uv &> /dev/null; then
+        echo "Error: uv installation failed!"
+        exit 1
+    fi
+    
     echo "✅ uv installed successfully"
 else
     echo "✅ uv already installed"
@@ -75,7 +97,6 @@ echo "✅ ComfyUI requirements installed"
 echo "----------------------------------------"
 echo "🔌 Installing essential custom nodes..."
 echo "----------------------------------------"
-
 # Create custom_nodes directory if it doesn't exist
 mkdir -p custom_nodes
 
@@ -146,9 +167,33 @@ cd /workspace/ComfyUI
 source .venv/bin/activate
 python main.py --listen --port 8188
 EOF
-
 chmod +x start_comfyui.sh
 echo "✅ Startup script created"
+
+# Create a simple systemd service file for auto-start
+echo "----------------------------------------"
+echo "🔧 Creating systemd service..."
+echo "----------------------------------------"
+cat > /etc/systemd/system/comfyui.service << 'EOF'
+[Unit]
+Description=ComfyUI Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/workspace/ComfyUI
+ExecStart=/bin/bash -c 'source .venv/bin/activate && python main.py --listen --port 8188'
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl enable comfyui
+echo "✅ Systemd service created and enabled"
 
 # Deactivate virtual environment
 echo "----------------------------------------"
@@ -167,6 +212,7 @@ echo "1. Navigate to /workspace/ComfyUI"
 echo "2. Activate the virtual environment: source .venv/bin/activate"
 echo "3. Run the startup script: ./start_comfyui.sh"
 echo "   OR manually run: python main.py --listen --port 8188"
+echo "   OR use the systemd service: systemctl start comfyui"
 echo ""
 echo "ComfyUI will be available at: http://localhost:8188"
 echo ""
