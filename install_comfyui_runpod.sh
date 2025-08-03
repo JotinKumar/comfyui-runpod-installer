@@ -5,6 +5,9 @@ echo "========================================"
 echo "🚀 Starting ComfyUI setup for RunPod.io..."
 echo "========================================"
 
+# Set UV_LINK_MODE to copy to avoid hardlinking issues across filesystems
+export UV_LINK_MODE=copy
+
 # Install uv if not present
 echo "----------------------------------------"
 echo "📦 Installing uv package manager..."
@@ -45,7 +48,6 @@ echo "----------------------------------------"
 echo "📁 Creating base directories..."
 echo "----------------------------------------"
 mkdir -p /workspace/ComfyUI
-mkdir -p /workspace/models
 
 # Clone ComfyUI repository
 echo "----------------------------------------"
@@ -66,7 +68,7 @@ echo "🐍 Creating virtual environment with uv..."
 echo "----------------------------------------"
 cd /workspace/ComfyUI
 if [ ! -d ".venv" ]; then
-    uv venv --python 3.11
+    uv venv --python 3.11 --seed
     echo "✅ Virtual environment created with Python 3.11"
 else
     echo "✅ Virtual environment already exists"
@@ -78,6 +80,13 @@ echo "🔄 Activating virtual environment..."
 echo "----------------------------------------"
 source .venv/bin/activate
 echo "✅ Virtual environment activated"
+
+# Ensure pip is properly installed
+echo "----------------------------------------"
+echo "📦 Ensuring pip is properly installed..."
+echo "----------------------------------------"
+uv pip install --upgrade pip setuptools wheel
+echo "✅ pip upgraded"
 
 # Install PyTorch with CUDA 12.8 support for 5090
 echo "----------------------------------------"
@@ -92,6 +101,13 @@ echo "📦 Installing ComfyUI requirements..."
 echo "----------------------------------------"
 uv pip install -r requirements.txt
 echo "✅ ComfyUI requirements installed"
+
+# Install onnxruntime-gpu for DWPose acceleration
+echo "----------------------------------------"
+echo "📦 Installing onnxruntime-gpu for DWPose..."
+echo "----------------------------------------"
+uv pip install onnxruntime-gpu
+echo "✅ onnxruntime-gpu installed"
 
 # Install essential custom nodes
 echo "----------------------------------------"
@@ -136,7 +152,7 @@ install_custom_node "https://github.com/pythongosssss/ComfyUI-Custom-Scripts.git
 install_custom_node "https://github.com/WASasquatch/was-node-suite-comfyui.git" "was-node-suite-comfyui"
 install_custom_node "https://github.com/rgthree/rgthree-comfy.git" "rgthree-comfy"
 
-# Create model directories
+# Create model directories inside ComfyUI (not in workspace root)
 echo "----------------------------------------"
 echo "📁 Creating model directories..."
 echo "----------------------------------------"
@@ -156,6 +172,24 @@ mkdir -p models/sams
 mkdir -p models/mmdets
 mkdir -p models/insightface
 echo "✅ Model directories created"
+
+# Download a small SDXL model
+echo "----------------------------------------"
+echo "📥 Downloading a small SDXL model..."
+echo "----------------------------------------"
+cd models/checkpoints
+wget -q https://huggingface.co/stabilityai/sdxl-turbo/resolve/main/sd_xl_turbo_1.0.safetensors -O sd_xl_turbo_1.0.safetensors
+cd /workspace/ComfyUI
+echo "✅ SDXL Turbo model downloaded"
+
+# Download a motion model for AnimateDiff
+echo "----------------------------------------"
+echo "📥 Downloading motion model for AnimateDiff..."
+echo "----------------------------------------"
+cd models/animatediff_models
+wget -q https://huggingface.co/guoyww/animatediff/resolve/main/v3_sd15_mm.ckpt -O v3_sd15_mm.ckpt
+cd /workspace/ComfyUI
+echo "✅ Motion model downloaded"
 
 # Create startup script
 echo "----------------------------------------"
@@ -231,3 +265,7 @@ echo "- ComfyUI-AnimateDiff-Evolved (animation support)"
 echo "- ComfyUI-Custom-Scripts (UI enhancements)"
 echo "- was-node-suite-comfyui (additional utility nodes)"
 echo "- rgthree-comfy (workflow organization nodes)"
+echo ""
+echo "Models downloaded:"
+echo "- SDXL Turbo (sd_xl_turbo_1.0.safetensors)"
+echo "- AnimateDiff motion model (v3_sd15_mm.ckpt)"
