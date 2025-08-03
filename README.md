@@ -38,5 +38,10 @@ wget https://raw.githubusercontent.com/JotinKumar/comfyui-runpod-installer/main/
 chmod +x install_supporting_components.sh
 ./install_supporting_components.sh
 
+# Model Downloads
+wget https://raw.githubusercontent.com/JotinKumar/comfyui-runpod-scripts/main/model_download.sh
+chmod +x model_download.sh
+./model_download.sh
+
 # Start ComfyUI
 comfyui
