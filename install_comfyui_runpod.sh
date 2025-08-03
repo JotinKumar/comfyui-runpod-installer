@@ -206,7 +206,7 @@ fi
 echo "----------------------------------------"
 echo "📝 Creating instruction file..."
 echo "----------------------------------------"
-cat > /workspace/COMFYUI_INSTRUCTIONS.txt << EOF
+cat > /workspace/Instructions.txt << EOF
 ========================================
 ComfyUI Setup Instructions
 ========================================
