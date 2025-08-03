@@ -28,6 +28,25 @@ if ! command -v uv &> /dev/null; then
     # Download and install uv binary
     curl -LsSf $UV_URL -o /usr/local/bin/uv
     chmod +x /usr/local/bin/uv
+    
+    # Verify installation
+    if [ ! -f "/usr/local/bin/uv" ] || [ ! -x "/usr/local/bin/uv" ]; then
+        echo "Error: uv binary not found or not executable at /usr/local/bin/uv"
+        exit 1
+    fi
+    
+    # Add /usr/local/bin to PATH if not already present
+    if [[ ":$PATH:" != *":/usr/local/bin:"* ]]; then
+        export PATH="/usr/local/bin:$PATH"
+        echo "Added /usr/local/bin to PATH"
+    fi
+    
+    # Verify uv is now available
+    if ! command -v uv &> /dev/null; then
+        echo "Error: uv still not found after installation"
+        exit 1
+    fi
+    
     echo "✅ uv installed successfully"
 else
     echo "✅ uv already installed"
@@ -58,7 +77,7 @@ echo "🐍 Creating virtual environment with uv..."
 echo "----------------------------------------"
 cd /workspace/ComfyUI
 if [ ! -d ".venv" ]; then
-    uv venv --python 3.11 --seed
+    /usr/local/bin/uv venv --python 3.11 --seed
     echo "✅ Virtual environment created with Python 3.11"
 else
     echo "✅ Virtual environment already exists"
@@ -67,36 +86,41 @@ fi
 # Activate virtual environment
 echo "----------------------------------------"
 echo "🔄 Activating virtual environment..."
-echo "----------------------------------------"
-source .venv/bin/activate
-echo "✅ Virtual environment activated"
+echo "----------------------------------------
+if [ -f ".venv/bin/activate" ]; then
+    source .venv/bin/activate
+    echo "✅ Virtual environment activated"
+else
+    echo "Error: Virtual environment activation script not found"
+    exit 1
+fi
 
 # Ensure pip is properly installed
 echo "----------------------------------------"
 echo "📦 Ensuring pip is properly installed..."
 echo "----------------------------------------"
-uv pip install --upgrade pip setuptools wheel
+/usr/local/bin/uv pip install --upgrade pip setuptools wheel
 echo "✅ pip upgraded"
 
 # Install PyTorch with CUDA 12.8 support for 5090
 echo "----------------------------------------"
 echo "🔥 Installing PyTorch with CUDA 12.8 for 5090 support..."
 echo "----------------------------------------"
-uv pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu128
+/usr/local/bin/uv pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu128
 echo "✅ PyTorch with CUDA 12.8 installed"
 
 # Install ComfyUI requirements
 echo "----------------------------------------"
 echo "📦 Installing ComfyUI requirements..."
 echo "----------------------------------------"
-uv pip install -r requirements.txt
+/usr/local/bin/uv pip install -r requirements.txt
 echo "✅ ComfyUI requirements installed"
 
 # Install onnxruntime-gpu for DWPose acceleration
 echo "----------------------------------------"
 echo "📦 Installing onnxruntime-gpu for DWPose..."
 echo "----------------------------------------"
-uv pip install onnxruntime-gpu
+/usr/local/bin/uv pip install onnxruntime-gpu
 echo "✅ onnxruntime-gpu installed"
 
 # Install essential custom nodes
@@ -116,7 +140,7 @@ install_custom_node() {
         echo "📥 Installing ${node_name}..."
         git clone ${repo_url} ${target_dir}
         if [ -f "${target_dir}/requirements.txt" ]; then
-            uv pip install -r ${target_dir}/requirements.txt
+            /usr/local/bin/uv pip install -r ${target_dir}/requirements.txt
         fi
         echo "✅ ${node_name} installed successfully"
     else
@@ -124,7 +148,7 @@ install_custom_node() {
         cd ${target_dir}
         git pull
         if [ -f "requirements.txt" ]; then
-            uv pip install -r requirements.txt
+            /usr/local/bin/uv pip install -r requirements.txt
         fi
         cd /workspace/ComfyUI
     fi
@@ -273,7 +297,7 @@ Troubleshooting
 ========================================
 
 1. If you encounter "No module named pip" errors, activate the virtual environment and run:
-   uv pip install --upgrade pip setuptools wheel
+   /usr/local/bin/uv pip install --upgrade pip setuptools wheel
 
 2. If custom nodes fail to load, check their requirements.txt files and install missing dependencies.
 
