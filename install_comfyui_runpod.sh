@@ -15,21 +15,21 @@ echo "----------------------------------------"
 if ! command -v uv &> /dev/null; then
     curl -LsSf https://astral.sh/uv/install.sh | sh
     
-    # Wait for cargo environment file to exist (max 15 seconds)
+    # Wait for uv environment file to exist (max 15 seconds)
     for i in {1..15}; do
-        if [ -f "$HOME/.cargo/env" ]; then
-            source $HOME/.cargo/env
-            echo "✅ Cargo environment loaded successfully"
+        if [ -f "$HOME/.local/bin/env" ]; then
+            source $HOME/.local/bin/env
+            echo "✅ uv environment loaded successfully"
             break
         fi
-        echo "Waiting for Cargo environment... ($i/15)"
+        echo "Waiting for uv environment... ($i/15)"
         sleep 1
     done
     
-    # Fallback if env file not found
+    # Fallback if env file not found - add uv bin directory to PATH
     if ! command -v uv &> /dev/null; then
-        echo "Warning: Cargo env file not found. Setting PATH manually."
-        export PATH="$HOME/.cargo/bin:$PATH"
+        echo "Warning: uv env file not found. Setting PATH manually."
+        export PATH="$HOME/.local/bin:$PATH"
     fi
     
     # Verify uv installation
@@ -204,7 +204,7 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/workspace/ComfyUI
-ExecStart=/bin/bash -c 'source .venv/bin/activate && python main.py --listen --port 8188'
+ExecStart=/bin/bash -c 'source $HOME/.local/bin/env && source .venv/bin/activate && python main.py --listen --port 8188'
 Restart=on-failure
 RestartSec=5
 
@@ -294,9 +294,11 @@ Troubleshooting
 
 3. If ComfyUI fails to start, check the error messages for missing dependencies or models.
 
-4. If uv command is not found, ensure it's properly installed by running the installation script again:
-   curl -LsSf https://astral.sh/uv/install.sh | sh
-   source $HOME/.cargo/env
+4. If uv command is not found, ensure it's properly installed by running:
+   source $HOME/.local/bin/env
+
+5. If you're starting ComfyUI in a new shell session, make sure to source the uv environment:
+   source $HOME/.local/bin/env
 EOF
 
 echo "✅ Instruction file created at /workspace/COMFYUI_INSTRUCTIONS.txt"
