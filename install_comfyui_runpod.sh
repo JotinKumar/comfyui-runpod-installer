@@ -8,42 +8,33 @@ echo "========================================"
 # Set UV_LINK_MODE to copy to avoid hardlinking issues across filesystems
 export UV_LINK_MODE=copy
 
-# Install uv if not present using direct binary download
+# Install uv if not present using the official installer
 echo "----------------------------------------"
 echo "📦 Installing uv package manager..."
 echo "----------------------------------------"
 if ! command -v uv &> /dev/null; then
-    echo "Installing uv precompiled binary..."
-    # Detect architecture
-    ARCH=$(uname -m)
-    if [ "$ARCH" = "x86_64" ]; then
-        UV_URL="https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-unknown-linux-gnu"
-    elif [ "$ARCH" = "aarch64" ]; then
-        UV_URL="https://github.com/astral-sh/uv/releases/latest/download/uv-aarch64-unknown-linux-gnu"
-    else
-        echo "Error: Unsupported architecture: $ARCH"
-        exit 1
-    fi
+    curl -LsSf https://astral.sh/uv/install.sh | sh
     
-    # Download and install uv binary
-    curl -LsSf $UV_URL -o /usr/local/bin/uv
-    chmod +x /usr/local/bin/uv
+    # Wait for cargo environment file to exist (max 15 seconds)
+    for i in {1..15}; do
+        if [ -f "$HOME/.cargo/env" ]; then
+            source $HOME/.cargo/env
+            echo "✅ Cargo environment loaded successfully"
+            break
+        fi
+        echo "Waiting for Cargo environment... ($i/15)"
+        sleep 1
+    done
     
-    # Verify installation
-    if [ ! -f "/usr/local/bin/uv" ] || [ ! -x "/usr/local/bin/uv" ]; then
-        echo "Error: uv binary not found or not executable at /usr/local/bin/uv"
-        exit 1
-    fi
-    
-    # Add /usr/local/bin to PATH if not already present
-    if [[ ":$PATH:" != *":/usr/local/bin:"* ]]; then
-        export PATH="/usr/local/bin:$PATH"
-        echo "Added /usr/local/bin to PATH"
-    fi
-    
-    # Verify uv is now available
+    # Fallback if env file not found
     if ! command -v uv &> /dev/null; then
-        echo "Error: uv still not found after installation"
+        echo "Warning: Cargo env file not found. Setting PATH manually."
+        export PATH="$HOME/.cargo/bin:$PATH"
+    fi
+    
+    # Verify uv installation
+    if ! command -v uv &> /dev/null; then
+        echo "Error: uv installation failed!"
         exit 1
     fi
     
@@ -77,7 +68,7 @@ echo "🐍 Creating virtual environment with uv..."
 echo "----------------------------------------"
 cd /workspace/ComfyUI
 if [ ! -d ".venv" ]; then
-    /usr/local/bin/uv venv --python 3.11 --seed
+    uv venv --python 3.11 --seed
     echo "✅ Virtual environment created with Python 3.11"
 else
     echo "✅ Virtual environment already exists"
@@ -86,7 +77,7 @@ fi
 # Activate virtual environment
 echo "----------------------------------------"
 echo "🔄 Activating virtual environment..."
-echo "----------------------------------------
+echo "----------------------------------------"
 if [ -f ".venv/bin/activate" ]; then
     source .venv/bin/activate
     echo "✅ Virtual environment activated"
@@ -99,28 +90,28 @@ fi
 echo "----------------------------------------"
 echo "📦 Ensuring pip is properly installed..."
 echo "----------------------------------------"
-/usr/local/bin/uv pip install --upgrade pip setuptools wheel
+uv pip install --upgrade pip setuptools wheel
 echo "✅ pip upgraded"
 
 # Install PyTorch with CUDA 12.8 support for 5090
 echo "----------------------------------------"
 echo "🔥 Installing PyTorch with CUDA 12.8 for 5090 support..."
 echo "----------------------------------------"
-/usr/local/bin/uv pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu128
+uv pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu128
 echo "✅ PyTorch with CUDA 12.8 installed"
 
 # Install ComfyUI requirements
 echo "----------------------------------------"
 echo "📦 Installing ComfyUI requirements..."
 echo "----------------------------------------"
-/usr/local/bin/uv pip install -r requirements.txt
+uv pip install -r requirements.txt
 echo "✅ ComfyUI requirements installed"
 
 # Install onnxruntime-gpu for DWPose acceleration
 echo "----------------------------------------"
 echo "📦 Installing onnxruntime-gpu for DWPose..."
 echo "----------------------------------------"
-/usr/local/bin/uv pip install onnxruntime-gpu
+uv pip install onnxruntime-gpu
 echo "✅ onnxruntime-gpu installed"
 
 # Install essential custom nodes
@@ -140,7 +131,7 @@ install_custom_node() {
         echo "📥 Installing ${node_name}..."
         git clone ${repo_url} ${target_dir}
         if [ -f "${target_dir}/requirements.txt" ]; then
-            /usr/local/bin/uv pip install -r ${target_dir}/requirements.txt
+            uv pip install -r ${target_dir}/requirements.txt
         fi
         echo "✅ ${node_name} installed successfully"
     else
@@ -148,7 +139,7 @@ install_custom_node() {
         cd ${target_dir}
         git pull
         if [ -f "requirements.txt" ]; then
-            /usr/local/bin/uv pip install -r requirements.txt
+            uv pip install -r requirements.txt
         fi
         cd /workspace/ComfyUI
     fi
@@ -297,11 +288,15 @@ Troubleshooting
 ========================================
 
 1. If you encounter "No module named pip" errors, activate the virtual environment and run:
-   /usr/local/bin/uv pip install --upgrade pip setuptools wheel
+   uv pip install --upgrade pip setuptools wheel
 
 2. If custom nodes fail to load, check their requirements.txt files and install missing dependencies.
 
 3. If ComfyUI fails to start, check the error messages for missing dependencies or models.
+
+4. If uv command is not found, ensure it's properly installed by running the installation script again:
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   source $HOME/.cargo/env
 EOF
 
 echo "✅ Instruction file created at /workspace/COMFYUI_INSTRUCTIONS.txt"
