@@ -72,6 +72,27 @@ A comprehensive collection of installation and setup scripts for deploying Comfy
 - Container with CUDA 12.8 support
 - Sufficient disk space (minimum 10GB recommended)
 
+### RunPod Configuration
+
+#### Basic Pod (Without Persistent Storage)
+
+- **Template**: RunPod CUDA 12.8
+- **Container Disk**: 20GB
+- **Port**: 8188/http
+- **Volume**: Not required
+- **Best for**: Quick testing and temporary workloads
+  > Note: All data will be lost when pod stops
+
+#### Production Pod (With Persistent Storage)
+
+- **Template**: RunPod CUDA 12.8
+- **Container Disk**: 10GB
+- **Port**: 8188/http
+- **Volume**: 100GB, mount at `/workspace`
+- **Best for**: Long-term usage and model storage
+
+> Note: Port 8188 is required for accessing the ComfyUI web interface
+
 ### Installation
 
 1. Download the installer script:
